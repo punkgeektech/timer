@@ -1,0 +1,20 @@
+#canvas {
+  width: 60vw;
+  margin: 0 auto;
+}
+.panel {
+  width: 10vw;
+  float: left;
+}
+.clock {
+  border-radius: 50%;
+  width: 3vw;
+  height: 3vw;
+  margin: 0.05vw;
+  border: 1px solid black;
+  float: left;
+}
+.pointer-canvas {
+  width: 3vw;
+  height: 3vw;
+}
