@@ -8,7 +8,12 @@
             };
   })();
 
+  // Wrap in object Timer
+
   var Timer = {
+
+    // pointer configuration
+    
     POINTER_LIST: {
       'centerPositionX': 0,
       'centerPositionY': 0,
@@ -104,16 +109,23 @@
 
     PANEL_SIZE: 6,
     PANEL_CLOCKS_SIZE: 15,
+    CLOCKS_SIZE: 90,
+    TIME_RUNNING_DURATION: 1000,
+    RESTART_DURATION: 10000,
+    MIN_SPEED: 5,
+    HOUR_SPEED: 1,
   }
 
-  Timer.arraysEqual = (a,b) => {
+  // Helper, check array is equal
+
+  Timer.arraysEqual = (a, b) => {
       if (a instanceof Array && b instanceof Array) {
           if (a.length != b.length) return false;
           for(var i = 0; i < a.length; i++)
-              if (!Timer.arraysEqual(a[i],b[i])) return false;
+              if (!Timer.arraysEqual(a[i], b[i])) return false;
           return true;
       } else {
-          return a==b;
+          return a == b;
       }
   }
 
@@ -216,15 +228,18 @@
   }
 
   Timer.setSpinFinished = () => {
-    if(Timer.arraysEqual(Timer.POINTER_LIST.degree.slice(0,15), Timer.TIME_TO_DEGREE_MAP[Timer.TIME.hour.charAt(0)]) &&
-       Timer.arraysEqual(Timer.POINTER_LIST.degree.slice(15,30), Timer.TIME_TO_DEGREE_MAP[Timer.TIME.hour.charAt(1)]) &&
-       Timer.arraysEqual(Timer.POINTER_LIST.degree.slice(30,45), Timer.TIME_TO_DEGREE_MAP[Timer.TIME.min.charAt(0)]) &&
-       Timer.arraysEqual(Timer.POINTER_LIST.degree.slice(45,60), Timer.TIME_TO_DEGREE_MAP[Timer.TIME.min.charAt(1)]) &&
-       Timer.arraysEqual(Timer.POINTER_LIST.degree.slice(60,75), Timer.TIME_TO_DEGREE_MAP[Timer.TIME.sec.charAt(0)]) &&
-       Timer.arraysEqual(Timer.POINTER_LIST.degree.slice(75,90), Timer.TIME_TO_DEGREE_MAP[Timer.TIME.sec.charAt(1)])) {
+    if(Timer.isArrayEqual(0) && Timer.isArrayEqual(1) &&
+       Timer.isArrayEqual(2) && Timer.isArrayEqual(3) &&
+       Timer.isArrayEqual(4) && Timer.isArrayEqual(5)) {
          Timer.TIME.finished = true;
-      }
-    console.log(Timer.TIME.finished);
+    }
+    console.log("finished: ", Timer.TIME.finished);
+  }
+
+  Timer.isArrayEqual = (index) => {
+    const pointerName = Timer.getPointerName(index + 1);
+    const pointerCharPosition = Timer.getPointerCharPosition(index + 1);
+    return Timer.arraysEqual(Timer.POINTER_LIST.degree.slice(index * Timer.PANEL_CLOCKS_SIZE, (index + 1) * Timer.PANEL_CLOCKS_SIZE), Timer.TIME_TO_DEGREE_MAP[Timer.TIME[pointerName].charAt(pointerCharPosition)]);
   }
 
   Timer.doDrawPointer = (clocksCount) => {
@@ -250,9 +265,17 @@
     }
   }
 
+  Timer.getPointerName = (index) => {
+    return index < 3 ? 'hour' : index < 5 ? 'min' : 'sec';
+  }
+
+  Timer.getPointerCharPosition = (index) => {
+    return (index % 2 == 0) ? 1 : 0;
+  }
+
   Timer.doDrawPanelPointer = (index, panelIndex) => {
-    let pointerName = panelIndex < 3 ? 'hour' : panelIndex < 5 ? 'min' : 'sec';
-    let pointerCharPosition = (panelIndex % 2 == 0) ? 1 : 0;
+    const pointerName = Timer.getPointerName(panelIndex);
+    const pointerCharPosition = Timer.getPointerCharPosition(panelIndex);
     if ((index / Timer.PANEL_CLOCKS_SIZE >= (panelIndex - 1)) && (index / Timer.PANEL_CLOCKS_SIZE < panelIndex)) {
       Timer.drawPanelPointer(parseInt(Timer.TIME[pointerName].charAt(pointerCharPosition)), index, (panelIndex - 1) * Timer.PANEL_CLOCKS_SIZE);
     }
@@ -272,50 +295,50 @@
     context.moveTo(0,0);
     context.lineTo(Timer.POINTER_LIST.centerPositionX * Math.cos(hourDegree * Math.PI / 180) * 0.8, Timer.POINTER_LIST.centerPositionY * Math.sin(hourDegree * Math.PI / 180) * 0.8);
     context.stroke();
+
     if (Timer.TIME.freeze) {
-      if (minDegree == Timer.TIME_TO_DEGREE_MAP[digit][index - distance][0]) {
-          Timer.POINTER_LIST.degree[index][0] = Timer.TIME_TO_DEGREE_MAP[digit][index - distance][0];
-      } else {
-        if (minDegree >= 360) {
-          Timer.POINTER_LIST.degree[index][0] = 0
-        } else {
-          Timer.POINTER_LIST.degree[index][0] += 5;
-        }
-      }
-      if (hourDegree == Timer.TIME_TO_DEGREE_MAP[digit][index - distance][1]) {
-          Timer.POINTER_LIST.degree[index][1] = Timer.TIME_TO_DEGREE_MAP[digit][index - distance][1];
-      } else {
-        if (hourDegree >= 360) {
-          Timer.POINTER_LIST.degree[index][1] = 0
-        } else {
-          Timer.POINTER_LIST.degree[index][1] += 1;
-        }
-      }
+      Timer.checkPointerStatus(index, minDegree, digit, distance, 0, Timer.MIN_SPEED);
+      Timer.checkPointerStatus(index, hourDegree, digit, distance, 1, Timer.HOUR_SPEED);
+
       if (minDegree == Timer.TIME_TO_DEGREE_MAP[digit][index - distance][0] && hourDegree == Timer.TIME_TO_DEGREE_MAP[digit][index - distance][1]) {
         Timer.POINTER_LIST.status[index] = 'stop';
       }
     } else {
-      if (minDegree >= 360) {
-        Timer.POINTER_LIST.degree[index][0] = 0
-      } else {
-        Timer.POINTER_LIST.degree[index][0] += 5;
-      }
-      if (hourDegree >= 360) {
-        Timer.POINTER_LIST.degree[index][1] = 0
-      } else {
-        Timer.POINTER_LIST.degree[index][1] += 1;
-      }
+      Timer.movePointer(index, minDegree, 0, Timer.MIN_SPEED);
+      Timer.movePointer(index, hourDegree, 1, Timer.HOUR_SPEED);
+    }
+  }
+
+  Timer.checkPointerStatus = (index, degree, digit, distance, position, speed) => {
+    if (degree == Timer.TIME_TO_DEGREE_MAP[digit][index - distance][position]) {
+      Timer.POINTER_LIST.degree[index][position] = Timer.TIME_TO_DEGREE_MAP[digit][index - distance][position];
+    } else {
+      Timer.movePointer(index, degree, position, speed);
+    }
+  }
+
+  Timer.movePointer = (index, degree, position, speed) => {
+    if (degree >= 360) {
+      Timer.POINTER_LIST.degree[index][position] = 0
+    } else {
+      Timer.POINTER_LIST.degree[index][position] += speed;
     }
   }
 
   Timer.clearPointer = (index) => {
     const context = Timer.POINTER_LIST.context[index];
     const canvas = Timer.POINTER_LIST.pointer[index];
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.clearRect(0, 0, -canvas.width, -canvas.height);
-    context.clearRect(0, 0, canvas.width, -canvas.height);
-    context.clearRect(0, 0, -canvas.width, canvas.height);
+    Timer.doClear(context, canvas, canvas.width, canvas.height);
+    Timer.doClear(context, canvas, -canvas.width, canvas.height);
+    Timer.doClear(context, canvas, canvas.width, -canvas.height);
+    Timer.doClear(context, canvas, -canvas.width, -canvas.height);
   }
+
+  Timer.doClear = (context, canvas, width, height) => {
+    context.clearRect(0, 0, width, height);
+  }
+
+  // Get Time
 
   Timer.timeFormat = (func) => {
     return func < 10 ? "0"+func : func.toString();
@@ -333,7 +356,7 @@
       Timer.getTime();
       console.log(Timer.TIME.hour, Timer.TIME.min, Timer.TIME.sec);
       Timer.TIME.freeze = true;
-    }, 10000);
+    }, Timer.TIME_RUNNING_DURATION);
     if (Timer.TIME.restart) {
       Timer.spin();
     }
@@ -343,12 +366,18 @@
     Timer.TIME.freeze = false;
     Timer.TIME.finished = false;
     Timer.TIME.restart = true;
-    for (let i = 0; i < 90; i++) {
-      Timer.POINTER_LIST.status[i] = '';
-    }
+    Timer.resetStatus(0);
     setTimeout(() => {
       Timer.runTime();
-    }, 10000);
+    }, Timer.RESTART_DURATION);
+  }
+
+  Timer.resetStatus = (index) => {
+    const count = index;
+    if (count < Timer.CLOCKS_SIZE) {
+      Timer.POINTER_LIST.status[count] = '';
+      Timer.resetStatus(count + 1);
+    }
   }
 
   Timer.start = () => {
