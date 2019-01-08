@@ -10,10 +10,10 @@
 
   // Wrap in object Timer
 
-  var Timer = {
+  const Timer = {
 
     // pointer configuration
-    
+
     POINTER_LIST: {
       'centerPositionX': 0,
       'centerPositionY': 0,
@@ -110,7 +110,7 @@
     PANEL_SIZE: 6,
     PANEL_CLOCKS_SIZE: 15,
     CLOCKS_SIZE: 90,
-    TIME_RUNNING_DURATION: 1000,
+    TIME_RUNNING_DURATION: 10000,
     RESTART_DURATION: 10000,
     MIN_SPEED: 5,
     HOUR_SPEED: 1,
@@ -233,7 +233,7 @@
        Timer.isArrayEqual(4) && Timer.isArrayEqual(5)) {
          Timer.TIME.finished = true;
     }
-    console.log("finished: ", Timer.TIME.finished);
+    // console.log("finished: ", Timer.TIME.finished);
   }
 
   Timer.isArrayEqual = (index) => {
@@ -354,7 +354,7 @@
   Timer.runTime = () => {
     setTimeout(() => {
       Timer.getTime();
-      console.log(Timer.TIME.hour, Timer.TIME.min, Timer.TIME.sec);
+      // console.log(Timer.TIME.hour, Timer.TIME.min, Timer.TIME.sec);
       Timer.TIME.freeze = true;
     }, Timer.TIME_RUNNING_DURATION);
     if (Timer.TIME.restart) {
